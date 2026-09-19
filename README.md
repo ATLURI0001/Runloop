@@ -1,167 +1,334 @@
 <div align="center">
-  <a href="https://github.com/langchain-ai/open-swe">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="assets/dark.svg">
-      <source media="(prefers-color-scheme: light)" srcset="assets/light.svg">
-      <img alt="Open SWE Logo" src="assets/dark.svg" width="35%">
-    </picture>
-  </a>
-</div>
 
-<div align="center">
-  <h3>An open-source software factory built on Deep Agents by LangChain.</h3>
-</div>
+# ⚡ Runloop
 
-<div align="center">
-  <a href="https://opensource.org/licenses/MIT" target="_blank"><img src="https://img.shields.io/github/license/langchain-ai/open-swe" alt="License"></a>
-  <a href="https://github.com/langchain-ai/open-swe" target="_blank"><img src="https://img.shields.io/github/stars/langchain-ai/open-swe" alt="GitHub Stars"></a>
-  <a href="https://github.com/langchain-ai/deepagents" target="_blank"><img src="https://img.shields.io/badge/Built%20on-Deep%20Agents-blue" alt="Built on Deep Agents"></a>
-  <a href="https://github.com/langchain-ai/langgraph" target="_blank"><img src="https://img.shields.io/badge/Powered%20by-LangGraph-blue" alt="Powered by LangGraph"></a>
-  <a href="https://x.com/langchain" target="_blank"><img src="https://img.shields.io/twitter/url/https/twitter.com/langchain.svg?style=social&label=Follow%20%40LangChain" alt="Twitter / X"></a>
-</div>
+### 🤖 Autonomous Software Engineering System
+
+**Turn engineering tasks into executable workflows. Plan, implement, validate, review, and ship.**
 
 <br>
 
-Open SWE turns engineering work into a repeatable system. Give it a code-change task from the dashboard, GitHub, Slack, or Linear—or run one on a schedule—and it works in an isolated environment to understand the codebase, make changes, validate them, and deliver a pull request.
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
+[![LangGraph](https://img.shields.io/badge/Powered%20by-LangGraph-blue.svg)](https://github.com/langchain-ai/langgraph)
 
-It goes beyond code generation. Open SWE can review pull requests, learn a repository's review style, monitor CI, and respond to feedback. It is open source, deployable in your infrastructure, and designed to be adapted to your team's repositories, tools, policies, and workflows.
-
-> [!NOTE]
-> Open SWE is under active development. APIs, setup, and product surfaces may continue to evolve.
+</div>
 
 ---
 
-## The software factory loop
+## 🚀 Overview
+
+**Runloop** is an autonomous software engineering platform designed to turn high-level development tasks into complete, executable workflows.
+
+Give Runloop a task and it can:
+
+* 🧠 Analyze the repository and understand the task
+* 📋 Plan the required implementation
+* 🛠️ Modify and generate code
+* 🧪 Run tests and validation
+* 🔍 Review implementation changes
+* 🔄 Iterate based on failures and feedback
+* 📦 Commit and prepare changes
+* 🔀 Create and update pull requests
+* 👀 Monitor CI and development workflows
+
+Instead of stopping at code generation, Runloop focuses on the complete **engineering loop** from task to validated delivery.
+
+---
+
+## 🔁 Engineering Loop
 
 ```mermaid
 flowchart LR
-    A[Issues, conversations, PRs, schedules] --> B[Plan and investigate]
-    B --> C[Implement in an isolated sandbox]
-    C --> D[Validate and deliver a PR]
-    D --> E[Review, CI, and feedback]
-    E -->|Follow-up work| B
+    A[📝 Task / Issue] --> B[🧠 Analyze]
+    B --> C[📋 Plan]
+    C --> D[🛠️ Implement]
+    D --> E[🧪 Validate]
+    E --> F{✅ Passed?}
+    F -->|No| D
+    F -->|Yes| G[🔍 Review]
+    G --> H[🔀 Pull Request]
+    H --> I[👀 CI / Feedback]
+    I -->|Changes Required| B
+    I -->|Approved| J[🚀 Ship]
 ```
 
-Each cloud coding thread is bound to its own persistent sandbox, so the agent can continue from prior work when you reply. A thread is a durable conversation and work context. It can contain multiple invocations, each an agent execution triggered by a message or automation. An initial request and a follow-up belong to one thread and produce two invocations, each with its own usage. Independent threads run in parallel, and the same thread carries context from request through delivery and follow-up. Read-only PR chat does not need a sandbox, while desktop work can run directly against an allowlisted local project.
+---
 
-## What Open SWE does
+## ✨ Core Capabilities
 
-### Build
+### 🧠 Autonomous Development
 
-- Investigates repositories, plans work, edits code, and runs focused validation
-- Commits and pushes changes, then opens or updates pull requests
-- Uses subagents to parallelize research and independent work
-- Supports reusable skills, repository instructions, and custom workspaces
+Runloop investigates the existing codebase before making changes, builds an implementation plan, modifies the relevant files, and validates the result.
 
-### Review
+### 🔬 Repository-Aware Reasoning
 
-- Runs read-only pull request reviews on demand or automatically
-- Learns repository-specific review preferences from historical feedback
-- Supports read-only PR chat for investigating a change without modifying it
-- Keeps findings grounded in the diff and publishes them back to GitHub
+The system works with the repository's existing structure, conventions, instructions, dependencies, and development workflow rather than treating every task as an isolated coding problem.
 
-### Operate
+### 🧪 Validation & Iteration
 
-- Runs tasks from the web dashboard, GitHub, Slack, and Linear
-- Schedules recurring work through deterministic automations
-- Monitors opted-in pull requests with `/baby-sit`, diagnoses CI failures, and reruns only evidence-backed flaky jobs
-- Routes follow-up messages to the original thread and sandbox
+Changes are tested and validated inside an isolated execution environment. Failures can feed back into the workflow for another implementation cycle.
 
-### Customize
+### 🔍 Code Review
 
-- Choose the models and reasoning effort available to agents and reviewers
-- Configure supported integrations and extend the curated toolset without forking Deep Agents
-- Define personal and repository coding instructions plus organization-wide review guidelines
-- Swap sandbox providers, middleware, skills, triggers, and delivery policies
+Runloop can perform read-only reviews of pull requests and surface findings grounded in the actual diff and repository context.
 
-## API contract
+### 🔄 Continuous Engineering
 
-[`swagger.json`](swagger.json) is the generated OpenAPI 3.1 contract for the custom FastAPI backend (`agent.webapp:app`). Import it into an OpenAPI 3.1-compatible viewer, or run `make run` and open `http://localhost:8000/docs` for interactive API documentation (`/openapi.json` serves the live schema).
+Development does not have to end when the first PR is created. Follow-up tasks, review feedback, CI failures, and additional changes can continue through the same workflow.
 
-Regenerate the file with `make swagger` after changing backend routes or models. It reflects the current route declarations: some request/response schemas and authentication requirements are not yet documented. LangGraph runtime endpoints (such as `/runs`, `/threads`, and `/assistants`) are not included.
+### 🧩 Extensible Architecture
 
-## How it works
+The system is designed around modular agents, tools, skills, execution environments, integrations, and workflow components.
 
-### Deep Agents is the harness
+---
 
-Open SWE composes the agent with [Deep Agents](https://github.com/langchain-ai/deepagents). Deep Agents provides the planning, file operations, shell access, skills, state, and subagent primitives; Open SWE adds the software-engineering tools, prompts, middleware, integrations, authorization, and product surfaces needed for end-to-end engineering work.
+## 🏗️ Architecture
 
-This composition keeps the system extensible while allowing it to inherit improvements from the underlying LangChain agent stack.
+```text
+                    ┌─────────────────────┐
+                    │     Task / Issue     │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │   Planning Engine   │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+              ┌────────────────────────────────┐
+              │       Engineering Agent        │
+              │                                │
+              │  • Repository Analysis         │
+              │  • Code Changes                │
+              │  • Shell / Tools               │
+              │  • Subagents                   │
+              │  • Validation                  │
+              └───────────────┬────────────────┘
+                              │
+                              ▼
+                    ┌─────────────────────┐
+                    │   Isolated Sandbox  │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │   Tests / CI / QA   │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │     Code Review     │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │    Pull Request     │
+                    └─────────────────────┘
+```
 
-### LangGraph is the runtime
+---
 
-[LangGraph](https://github.com/langchain-ai/langgraph) provides durable execution and thread state. Each Open SWE invocation executes as a LangGraph run within a thread. Open SWE currently ships five graph entrypoints:
+## 🧱 Workflow Components
 
-| Graph | Role |
-|---|---|
-| **Agent** | Plans, implements, validates, and delivers software changes |
-| **Reviewer** | Performs read-only pull request reviews |
-| **Analyzer** | Learns repository-specific review style |
-| **Chat** | Answers questions about pull requests without changing code |
-| **Scheduler** | Dispatches recurring tasks and CI monitoring work |
+| Component    | Responsibility                                         |
+| ------------ | ------------------------------------------------------ |
+| 🧠 Planner   | Understands the task and creates an execution strategy |
+| 🤖 Engineer  | Implements repository changes                          |
+| 🔬 Analyzer  | Investigates repository structure and conventions      |
+| 🔍 Reviewer  | Performs pull-request analysis                         |
+| 💬 Chat      | Answers questions about changes and PRs                |
+| ⏱️ Scheduler | Executes recurring engineering workflows               |
+| 🧪 Validator | Runs tests and checks implementation correctness       |
+| 📦 Delivery  | Commits changes and prepares pull requests             |
 
-### Sandboxes contain the work
+---
 
-Cloud work runs in isolated Linux sandboxes with the development tooling supplied by the workspace's setup scripts or snapshot. A sandbox persists with its thread, but an unreachable coding sandbox is not silently replaced—Open SWE fails safely rather than risk discarding uncommitted work.
+## 🛠️ Technology
 
-[LangSmith](https://smith.langchain.com/) is the default sandbox and tracing provider. Open SWE also supports [Modal](https://modal.com/), [Daytona](https://www.daytona.io/), [Runloop](https://www.runloop.ai/), [E2B](https://e2b.dev/), and local execution, with a pluggable interface for additional providers.
+Runloop is designed around an agentic software-engineering architecture with:
 
-### Tools stay curated
+* 🐍 Python
+* 🕸️ LangGraph
+* 🤖 Deep Agents
+* 🔧 Tool-based agent execution
+* 🧪 Automated validation
+* 📦 Isolated development sandboxes
+* 🔀 Git-based workflows
+* 🌐 API-driven integrations
 
-Deep Agents supplies the core filesystem, shell, and subagent tools. Open SWE adds focused capabilities for GitHub delivery, Linear, Slack, thread management, web research, browser-based application verification, planning, review, CI monitoring, and connected services. Personal integrations load using the user's connections. Admin-configured workspace MCP tools are available to all coding-agent users.
+---
 
-## Work where your team works
+## 🎯 Example Workflow
 
-- **Dashboard** — Start and continue tasks, inspect work, manage pull requests, and configure user or team settings.
-- **GitHub** — Start tasks from issues, request changes from pull request conversations, run reviews, and continue work on the same branch.
-- **Slack** — Start from a channel, thread, or code channel, and receive progress and delivery updates in context.
-- **Linear** — Invoke Open SWE from an issue and post results back to the issue.
-- **Desktop (experimental)** — Run the same agent against local repositories. Packaged releases currently target macOS; source builds also support Windows and Linux.
+```text
+User:
+"Add authentication to the API and write tests."
 
-## Control and safety
+        ↓
 
-A useful software factory needs both autonomy and boundaries. Open SWE includes:
+Runloop
+        ↓
+Analyzes repository
+        ↓
+Identifies API architecture
+        ↓
+Creates implementation plan
+        ↓
+Modifies authentication layer
+        ↓
+Adds tests
+        ↓
+Runs validation
+        ↓
+Fixes failures
+        ↓
+Reviews changes
+        ↓
+Creates Pull Request
+        ↓
+Monitors CI
+```
 
-- Per-thread sandbox isolation and persistent workspaces for cloud coding tasks
-- GitHub App installation boundaries and optional per-user OAuth
-- Organization and repository allowlists with actor authorization checks
-- Credentials kept in the server process or injected through a sandbox proxy
-- Human approval before pushing workflow-file changes
-- Read-only reviewer and PR chat agents
-- Plan mode for reviewing an implementation approach before code changes
-- Opt-in automatic review and CI monitoring
+---
 
-Sandboxes can have network access and powerful tools. Deployments should use least-privilege credentials, restrict enabled repositories and integrations, and tailor approval rules to their environment.
+## 🔐 Safety & Isolation
 
-## Getting started
+Autonomous engineering requires controlled execution.
 
-Open SWE includes a LangGraph backend, a web dashboard, and an experimental desktop client.
+Runloop is designed to support:
 
-- **[Installation Guide](docs/INSTALLATION.md)** — Deploy Open SWE for a team: LangGraph Platform or Docker, the GitHub and Slack apps, model providers, environment variables, and the optional Linear trigger
-- **[Development Guide](docs/DEVELOPMENT.md)** — Run it on your machine, with hot reload for the dashboard and an ngrok tunnel for webhooks
-- **[Customization Guide](docs/CUSTOMIZATION.md)** — Change models, sandboxes, tools, skills, prompts, triggers, and middleware
-- **[Open SWE Enhancement Proposals](oeps/README.md)** — Review consequential product, architecture, security, and process decisions
+* 🔒 Isolated execution environments
+* 🛡️ Repository access boundaries
+* 🔑 Controlled credentials
+* 👤 Human approval workflows
+* 👀 Read-only review modes
+* 📋 Planning before implementation
+* 🚦 Configurable automation policies
 
-One deployment serves the API, the webhooks, and the dashboard from a single URL. Locally:
+Deployments should follow least-privilege principles and restrict repository, credential, and integration access appropriately.
+
+---
+
+## 📁 Project Structure
+
+```text
+runloop/
+├── agent/
+│   ├── agents/
+│   ├── tools/
+│   ├── workflows/
+│   └── ...
+├── frontend/
+├── tests/
+├── docs/
+├── scripts/
+├── pyproject.toml
+└── README.md
+```
+
+---
+
+## ⚙️ Getting Started
+
+### Clone
 
 ```bash
-git clone https://github.com/langchain-ai/open-swe.git
-cd open-swe
-uv venv
-source .venv/bin/activate
-uv sync --all-extras
-make build-dashboard   # pnpm install + Vite build of the dashboard
-make dev               # http://localhost:2024 serves the API and the dashboard
+git clone https://github.com/ATLURI0001/runloop.git
+cd runloop
 ```
 
-Create a GitHub App and a Slack app for your machine and fill in `.env` as described in the [development guide](docs/DEVELOPMENT.md), then sign in at `http://localhost:2024`. For UI work, `make dev-ui` starts Vite and the backend fronting it, so the same URL hot-reloads. GitHub and Slack deliver to a public webhook URL: locally the static domain of a free ngrok account (`make tunnel NGROK_DOMAIN=<name>.ngrok-free.dev`, which exposes only `/webhooks/*`, since the dev server's LangGraph API has no authentication), on LangGraph Platform the deployment URL.
+### Environment
 
-Production self-hosting uses the standalone LangGraph Agent Server and requires its license key.
+```bash
+uv venv
+source .venv/bin/activate
+```
 
-## Project status
+Windows:
 
-Open SWE is built in the open by LangChain and is evolving quickly. The original internal coding-agent framework announcement is available on the [LangChain blog](https://blog.langchain.com/open-swe-an-open-source-framework-for-internal-coding-agents/); the project has since expanded considerably.
+```powershell
+.venv\Scripts\Activate.ps1
+```
 
-## License
+### Install
 
-Open SWE is licensed under the [MIT License](LICENSE).
+```bash
+uv sync --all-extras
+```
+
+### Run
+
+```bash
+make dev
+```
+
+The development server will start locally.
+
+---
+
+## 🧪 Development
+
+Run tests with:
+
+```bash
+pytest
+```
+
+Build the frontend with:
+
+```bash
+make build-dashboard
+```
+
+Run the development environment with:
+
+```bash
+make dev
+```
+
+---
+
+## 🗺️ Roadmap
+
+* [x] Repository analysis
+* [x] Autonomous code modification
+* [x] Task planning
+* [x] Validation workflows
+* [x] Pull-request workflows
+* [ ] Advanced multi-agent orchestration
+* [ ] Expanded repository integrations
+* [ ] Improved autonomous debugging
+* [ ] Enhanced CI recovery
+* [ ] Workflow observability
+* [ ] Additional sandbox providers
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome.
+
+```bash
+git checkout -b feature/your-feature
+git commit -m "feat: add your feature"
+git push origin feature/your-feature
+```
+
+Then open a pull request.
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License**.
+
+---
+
+<div align="center">
+
+### ⚡ Runloop
+
+**Understand → Plan → Build → Validate → Review → Ship**
+
+</div>
