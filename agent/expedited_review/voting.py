@@ -129,7 +129,7 @@ async def _submit_github_approval(approval: ExpeditedApproval, login: str) -> in
     except httpx2.HTTPStatusError as exc:
         detail = _github_error(exc.response)
         return VoteOutcome(f"GitHub rejected your review: {detail}")
-    except httpx2.HTTPError, ValueError:
+    except (httpx2.HTTPError, ValueError):
         return VoteOutcome("GitHub did not answer when submitting your review. Try again.")
     review_id = data.get("id") if isinstance(data, dict) else None
     if not isinstance(review_id, int):

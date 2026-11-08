@@ -1316,7 +1316,7 @@ async def import_store_records() -> int:
             if await WORKSPACES.get(record.slug) is None:
                 try:
                     await WORKSPACES.put(record.slug, record)
-                except ValueError, IntegrityError:
+                except (ValueError, IntegrityError):
                     # One record another workspace has since claimed, or one a
                     # constraint refuses, must not cost the rest their import.
                     skipped += 1
