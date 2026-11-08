@@ -202,7 +202,7 @@ async def _fetch_pull_request(
         response = await github_request(client, "GET", url)
         response.raise_for_status()
         payload = response.json()
-    except httpx2.HTTPError, ValueError:
+    except (httpx2.HTTPError, ValueError):
         return None
     return payload if isinstance(payload, dict) else None
 
@@ -248,7 +248,7 @@ async def _fetch_check_runs(
             if len(raw_runs) < 100:
                 return runs
             page += 1
-    except httpx2.HTTPError, ValueError:
+    except (httpx2.HTTPError, ValueError):
         return None
 
 
@@ -275,7 +275,7 @@ async def _fetch_commit_statuses(
             if len(raw_statuses) < 100:
                 break
             page += 1
-    except httpx2.HTTPError, ValueError:
+    except (httpx2.HTTPError, ValueError):
         return None
     latest: list[dict[str, Any]] = []
     contexts: set[str] = set()
@@ -363,7 +363,7 @@ async def fetch_mergeability(
         )
         response.raise_for_status()
         payload = response.json()
-    except httpx2.HTTPError, ValueError:
+    except (httpx2.HTTPError, ValueError):
         logger.warning(
             "Mergeability query failed; falling back to what REST reported",
             extra={"pr_repo_full_name": f"{owner}/{repo}", "pr_number": number},
@@ -467,7 +467,7 @@ async def fetch_unresolved_review_threads(
                 return None
             seen_cursors.add(next_cursor)
             cursor = next_cursor
-    except httpx2.HTTPError, ValueError:
+    except (httpx2.HTTPError, ValueError):
         return None
 
 
@@ -537,7 +537,7 @@ async def _fetch_review_state(
                 return ReviewState(None, review_required)
             seen_cursors.add(next_cursor)
             cursor = next_cursor
-    except httpx2.HTTPError, ValueError:
+    except (httpx2.HTTPError, ValueError):
         return ReviewState(None, review_required)
 
 
@@ -638,7 +638,7 @@ async def _fetch_review_decision(
             if len(reviews) < 100:
                 break
             page += 1
-    except httpx2.HTTPError, ValueError:
+    except (httpx2.HTTPError, ValueError):
         return None
     decisions = {state for _, state in latest.values()}
     if "CHANGES_REQUESTED" in decisions:

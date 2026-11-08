@@ -62,7 +62,7 @@ class GitHubPrRef:
 def parse_slack_ts(ts: str | None) -> float:
     try:
         return float(ts or "0")
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         return 0.0
 
 
@@ -1201,7 +1201,7 @@ async def respond_to_slack_interaction(response_url: str, payload: dict[str, Any
                 return isinstance(data, dict) and data.get("ok") is True
             finally:
                 await response.aclose()
-    except httpx2.HTTPError, ValueError:
+    except (httpx2.HTTPError, ValueError):
         logger.warning("Slack interaction response failed")
         return False
 
