@@ -38,8 +38,22 @@ def resolve_and_validate(url: str) -> tuple[bool, str, str | None, list | None]:
             except ValueError:
                 return False, f"Could not parse resolved address: {ip_str}", hostname, None
 
-            if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
-                ip = ip.ipv4_mapped
+            if isinstance(ip, ipaddress.IPv6Address):
+                if ip.ipv4_mapped is not None:
+                    ip = ip.ipv4_mapped
+                elif int(ip) <= 0xFFFFFFFF:
+                    # Deprecated IPv4-compatible IPv6 address (::x.x.x.x)
+                    ip = ipaddress.IPv4Address(int(ip))
+                elif ip.sixtofour is not None:
+                    # 6to4 encapsulation (2002:x.x.x.x::)
+                    if not ip.sixtofour.is_global:
+                        return False, f"URL resolves to blocked address: {ip_str}", hostname, None
+                elif ip.teredo is not None:
+                    # Teredo encapsulation (2001:0000::)
+                    server, client = ip.teredo
+                    if not server.is_global or not client.is_global:
+                        return False, f"URL resolves to blocked address: {ip_str}", hostname, None
+
             if not ip.is_global:
                 return False, f"URL resolves to blocked address: {ip_str}", hostname, None
 
