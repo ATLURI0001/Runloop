@@ -12,11 +12,30 @@ _ENTITY_HEADERS = {"content-encoding", "content-language", "content-length", "co
 _SENSITIVE_HEADERS = {"authorization", "cookie", "proxy-authorization"}
 
 
+_NAT64_WELL_KNOWN = ipaddress.IPv6Network("64:ff9b::/96")
+_NAT64_LOCAL_USE = ipaddress.IPv6Network("64:ff9b:1::/48")
+
+
+def _extract_embedded_ipv4_from_nat64(ip: ipaddress.IPv6Address) -> ipaddress.IPv4Address | None:
+    """Extract the embedded IPv4 address from RFC 6052 / RFC 8215 NAT64 prefixes."""
+    stripped = ipaddress.IPv6Address(int(ip))
+    if stripped in _NAT64_WELL_KNOWN or stripped in _NAT64_LOCAL_USE:
+        return ipaddress.IPv4Address(int(stripped) & 0xFFFFFFFF)
+    return None
+
+
+def _host_header_for(parsed: Any) -> str:
+    """Format an HTTP Host header without leaking credentials from netloc."""
+    hostname = parsed.hostname or ""
+    host_literal = f"[{hostname}]" if ":" in hostname else hostname
+    return f"{host_literal}:{parsed.port}" if parsed.port else host_literal
+
+
 def resolve_and_validate(url: str) -> tuple[bool, str, str | None, list | None]:
     """Resolve a URL host and require every resolved address to be public."""
     try:
         parsed = urlparse(url)
-        if parsed.scheme not in {"http", "https"}:
+        if parsed.scheme.lower() not in {"http", "https"}:
             return False, f"Unsupported URL scheme: {parsed.scheme or '<missing>'}", None, None
 
         hostname = parsed.hostname
@@ -34,7 +53,7 @@ def resolve_and_validate(url: str) -> tuple[bool, str, str | None, list | None]:
         for addr_info in addr_infos:
             ip_str = addr_info[4][0]
             try:
-                ip = ipaddress.ip_address(ip_str)
+                ip = ipaddress.ip_address(ip_str.split("%", 1)[0])
             except ValueError:
                 return False, f"Could not parse resolved address: {ip_str}", hostname, None
 
@@ -44,6 +63,8 @@ def resolve_and_validate(url: str) -> tuple[bool, str, str | None, list | None]:
                 elif int(ip) <= 0xFFFFFFFF:
                     # Deprecated IPv4-compatible IPv6 address (::x.x.x.x)
                     ip = ipaddress.IPv4Address(int(ip))
+                elif (embedded := _extract_embedded_ipv4_from_nat64(ip)) is not None:
+                    ip = embedded
                 elif ip.sixtofour is not None:
                     # 6to4 encapsulation (2002:x.x.x.x::)
                     if not ip.sixtofour.is_global:
@@ -80,7 +101,8 @@ def _blocked_response(url: str, reason: str) -> dict[str, Any]:
 
 def pinned_url(url: str, ip: str) -> str:
     parsed = urlparse(url)
-    host_literal = f"[{ip}]" if ":" in ip else ip
+    clean_ip = ip.split("%", 1)[0].strip("[]")
+    host_literal = f"[{clean_ip}]" if ":" in clean_ip else clean_ip
     netloc = f"{host_literal}:{parsed.port}" if parsed.port else host_literal
     return urlunparse(parsed._replace(netloc=netloc))
 
@@ -144,7 +166,7 @@ async def request_with_safe_redirects(
 
         parsed = urlparse(current_url)
         per_hop_headers = dict(headers_for_url(url, current_url) or {}) if headers_for_url else {}
-        headers = {**caller_headers, **per_hop_headers, "Host": parsed.netloc}
+        headers = {**caller_headers, **per_hop_headers, "Host": _host_header_for(parsed)}
         extensions = {**caller_extensions, "sni_hostname": hostname}
 
         pinned_ips = list(dict.fromkeys(addr_info[4][0] for addr_info in addr_infos))
