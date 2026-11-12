@@ -34,20 +34,46 @@ def code_for_error_type(error_type: str | None) -> str | None:
     return _ERROR_TYPE_CODES.get(error_type) if error_type else None
 
 
+def _extract_body_text(body: Any) -> str:
+    if isinstance(body, dict):
+        parts: list[str] = []
+        for key in ("type", "code", "message", "detail"):
+            val = body.get(key)
+            if val:
+                parts.append(str(val))
+        inner = body.get("error")
+        if isinstance(inner, dict):
+            for key in ("type", "code", "message"):
+                val = inner.get(key)
+                if val:
+                    parts.append(str(val))
+        elif inner:
+            parts.append(str(inner))
+        return " ".join(parts)
+    if isinstance(body, (str, bytes)):
+        return body.decode("utf-8", errors="replace") if isinstance(body, bytes) else body
+    return ""
+
+
+def _parse_status_code(raw: Any) -> int | None:
+    if isinstance(raw, bool):
+        return None
+    if isinstance(raw, int):
+        return raw
+    if isinstance(raw, str) and raw.strip().isdigit():
+        return int(raw.strip())
+    return None
+
+
 def classify_exception(exc: BaseException) -> str | None:
     """Failure code for a live exception, using status and provider error body.
 
     Provider-agnostic on purpose: a gateway can surface an overload as anything
     from a 529 to a bare ``APIError`` carrying ``overloaded_error`` in its body.
     """
-    status = getattr(exc, "status_code", None)
-    body = getattr(exc, "body", None)
-    provider_code = ""
-    if isinstance(body, dict):
-        inner = body.get("error")
-        if isinstance(inner, dict):
-            provider_code = str(inner.get("type") or inner.get("code") or "")
-    haystack = f"{provider_code} {exc}".lower()
+    status = _parse_status_code(getattr(exc, "status_code", None))
+    body_text = _extract_body_text(getattr(exc, "body", None))
+    haystack = f"{body_text} {exc}".lower()
 
     if status == 429 or "rate_limit" in haystack:
         return "provider_rate_limited"
@@ -57,9 +83,15 @@ def classify_exception(exc: BaseException) -> str | None:
         return "context_too_long"
     if "model_not_available" in haystack or "model_not_found" in haystack:
         return "model_unavailable"
-    if isinstance(status, int) and status >= 500:
+    if status is not None and status >= 500:
         return "provider_unavailable"
-    return code_for_error_type(type(exc).__name__)
+    direct = code_for_error_type(type(exc).__name__)
+    if direct is not None:
+        return direct
+    cause = exc.__cause__
+    if cause is not None and cause is not exc:
+        return classify_exception(cause)
+    return None
 
 
 def error_tracking_fields(exc: BaseException) -> dict[str, Any]:
