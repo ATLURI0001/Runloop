@@ -87,3 +87,25 @@ def test_resolve_and_validate_allows_public_ipv6(
     is_safe, reason, host, _ = url_safety.resolve_and_validate("https://public.example/data")
     assert is_safe
     assert reason == ""
+
+
+def test_resolve_and_validate_blocks_nat64_private_and_allows_case_insensitive_scheme(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for blocked_ip in ["64:ff9b::127.0.0.1", "64:ff9b::169.254.169.254", "64:ff9b:1::10.0.0.1"]:
+        monkeypatch.setattr(
+            url_safety.socket,
+            "getaddrinfo",
+            lambda host, port, *args, **kwargs: [(None, None, None, None, (blocked_ip, 0))],
+        )
+        is_safe, reason, _, _ = url_safety.resolve_and_validate("HTTPS://attacker.example/data")
+        assert not is_safe, f"Expected NAT64 {blocked_ip} to be blocked"
+        assert "blocked address" in reason
+
+
+def test_pinned_url_strips_zone_id_and_host_header_omits_userinfo() -> None:
+    from urllib.parse import urlparse
+
+    assert url_safety.pinned_url("https://example.com:8443/path", "fe80::1%eth0") == "https://[fe80::1]:8443/path"
+    parsed = urlparse("https://secret:pass@example.com:8443/path")
+    assert url_safety._host_header_for(parsed) == "example.com:8443"
