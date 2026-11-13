@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import math
+import time
 from collections.abc import Awaitable, Callable
 from typing import TypeVar, cast
 
@@ -12,8 +14,19 @@ _LOCKS: dict[tuple[str, int], asyncio.Lock] = {}
 _REFRESH_TASKS: dict[tuple[str, int], asyncio.Task[None]] = {}
 
 
+def _validate_ttl(ttl_seconds: float) -> float:
+    if isinstance(ttl_seconds, bool) or not isinstance(ttl_seconds, (int, float)):
+        raise ValueError(f"ttl_seconds must be a number, got {type(ttl_seconds).__name__}")
+    if not math.isfinite(ttl_seconds) or ttl_seconds < 0:
+        raise ValueError(f"ttl_seconds must be a non-negative finite number, got {ttl_seconds!r}")
+    return float(ttl_seconds)
+
+
 def _now() -> float:
-    return asyncio.get_running_loop().time()
+    try:
+        return asyncio.get_running_loop().time()
+    except RuntimeError:
+        return time.monotonic()
 
 
 def _lock_for(key: str) -> asyncio.Lock:
@@ -26,7 +39,8 @@ def _lock_for(key: str) -> asyncio.Lock:
     return lock
 
 
-async def cached[T](key: str, ttl_seconds: float, loader: Callable[[], Awaitable[T]]) -> T:
+async def cached(key: str, ttl_seconds: float, loader: Callable[[], Awaitable[T]]) -> T:
+    ttl = _validate_ttl(ttl_seconds)
     now = _now()
     entry = _CACHE.get(key)
     if entry is not None:
@@ -53,7 +67,7 @@ async def cached[T](key: str, ttl_seconds: float, loader: Callable[[], Awaitable
                 )
                 return cast(T, stale)
             raise
-        _CACHE[key] = (value, now + ttl_seconds)
+        _CACHE[key] = (value, now + ttl)
         return value
 
 
@@ -83,28 +97,26 @@ def _schedule_refresh(
     task.add_done_callback(lambda _task: _REFRESH_TASKS.pop(task_key, None))
 
 
-async def cached_stale_while_revalidate[T](
+async def cached_stale_while_revalidate(
     key: str,
     ttl_seconds: float,
     loader: Callable[[], Awaitable[T]],
 ) -> T:
+    ttl = _validate_ttl(ttl_seconds)
     now = _now()
     entry = _CACHE.get(key)
     if entry is not None:
         value, expires_at = entry
         if expires_at > now:
             return cast(T, value)
-        _schedule_refresh(key, ttl_seconds, loader)
+        _schedule_refresh(key, ttl, loader)
         return cast(T, value)
-    return await cached(key, ttl_seconds, loader)
+    return await cached(key, ttl, loader)
 
 
 def set_cached(key: str, value: object, ttl_seconds: float) -> None:
-    try:
-        expires_at = _now() + ttl_seconds
-    except RuntimeError:
-        expires_at = float("inf")
-    _CACHE[key] = (value, expires_at)
+    ttl = _validate_ttl(ttl_seconds)
+    _CACHE[key] = (value, _now() + ttl)
 
 
 def invalidate(key: str) -> None:
